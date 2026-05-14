@@ -1,16 +1,52 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, Tray } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, Tray, nativeImage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 
-let tray = null;
+app.disableHardwareAcceleration();
+
+let mainWindow;
+let tray;
 let isQuiting = false;
 
-const notesFilePath = path.join(app.getPath('userData'), 'notes.json');
+function getQuickNotePath() {
+    return path.join(app.getPath('documents'), 'quicknote.txt');
+}
+
+function getNotesFilePath() {
+    return path.join(app.getPath('userData'), 'notes.json');
+}
+
+function readNotes() {
+    const notesFilePath = getNotesFilePath();
+
+    if (!fs.existsSync(notesFilePath)) {
+        return [];
+    }
+
+    try {
+        const data = fs.readFileSync(notesFilePath, 'utf-8');
+
+        if (!data.trim()) {
+            return [];
+        }
+
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error reading notes:', error);
+        return [];
+    }
+}
+
+function writeNotes(notes) {
+    const notesFilePath = getNotesFilePath();
+    fs.writeFileSync(notesFilePath, JSON.stringify(notes, null, 2), 'utf-8');
+}
 
 function createWindow() {
-    const win = new BrowserWindow({
-        width: 900,
-        height: 600,
+    mainWindow = new BrowserWindow({
+        width: 1000,
+        height: 650,
+        title: 'Quick Note Taker',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -18,34 +54,17 @@ function createWindow() {
         }
     });
 
-    win.loadFile('index.html');
+    mainWindow.loadFile('index.html');
 
-    win.on('close', (event) => {
+    mainWindow.on('close', (event) => {
         if (!isQuiting) {
             event.preventDefault();
-            win.hide();
+            mainWindow.hide();
         }
     });
 }
 
-function readNotes() {
-    if (!fs.existsSync(notesFilePath)) {
-        return [];
-    }
-
-    try {
-        const raw = fs.readFileSync(notesFilePath, 'utf-8');
-        return JSON.parse(raw);
-    } catch (error) {
-        return [];
-    }
-}
-
-function writeNotes(notes) {
-    fs.writeFileSync(notesFilePath, JSON.stringify(notes, null, 2), 'utf-8');
-}
-
-function createMenu() {
+function createAppMenu() {
     const menuTemplate = [
         {
             label: 'File',
@@ -54,32 +73,36 @@ function createMenu() {
                     label: 'New Note',
                     accelerator: 'CmdOrCtrl+N',
                     click: () => {
-                        const win = BrowserWindow.getFocusedWindow();
-                        if (win) win.webContents.send('menu-new-note');
+                        if (mainWindow) {
+                            mainWindow.webContents.send('menu-new-note');
+                        }
                     }
                 },
                 {
                     label: 'Open File',
                     accelerator: 'CmdOrCtrl+O',
                     click: () => {
-                        const win = BrowserWindow.getFocusedWindow();
-                        if (win) win.webContents.send('menu-open-file');
+                        if (mainWindow) {
+                            mainWindow.webContents.send('menu-open-file');
+                        }
                     }
                 },
                 {
                     label: 'Save',
                     accelerator: 'CmdOrCtrl+S',
                     click: () => {
-                        const win = BrowserWindow.getFocusedWindow();
-                        if (win) win.webContents.send('menu-save');
+                        if (mainWindow) {
+                            mainWindow.webContents.send('menu-save');
+                        }
                     }
                 },
                 {
                     label: 'Save As',
                     accelerator: 'CmdOrCtrl+Shift+S',
                     click: () => {
-                        const win = BrowserWindow.getFocusedWindow();
-                        if (win) win.webContents.send('menu-save-as');
+                        if (mainWindow) {
+                            mainWindow.webContents.send('menu-save-as');
+                        }
                     }
                 },
                 { type: 'separator' },
@@ -100,19 +123,47 @@ function createMenu() {
 }
 
 function createTray() {
-    tray = new Tray(path.join(__dirname, 'tray-icon.png'));
+    // Your icon location:
+    // quick-note-taker/assets/note taker icon.png
+    const iconPath = path.join(__dirname, 'assets', 'image.png');
+
+    console.log('Tray icon path:', iconPath);
+    console.log('Icon exists:', fs.existsSync(iconPath));
+
+    let icon = nativeImage.createFromPath(iconPath);
+
+    if (icon.isEmpty()) {
+        console.log('ERROR: Tray icon is empty. Check file name and location.');
+        return;
+    }
+
+    icon = icon.resize({
+        width: 16,
+        height: 16
+    });
+
+    tray = new Tray(icon);
+    tray.setToolTip('Quick Note Taker');
 
     const trayMenu = Menu.buildFromTemplate([
         {
-            label: 'Show App',
+            label: 'Show Quick Note Taker',
             click: () => {
-                const win = BrowserWindow.getAllWindows()[0];
-                if (win) {
-                    win.show();
-                    win.focus();
-                }
+                if (!mainWindow) return;
+
+                mainWindow.show();
+                mainWindow.focus();
             }
         },
+        {
+            label: 'Hide Quick Note Taker',
+            click: () => {
+                if (!mainWindow) return;
+
+                mainWindow.hide();
+            }
+        },
+        { type: 'separator' },
         {
             label: 'Quit',
             click: () => {
@@ -122,141 +173,218 @@ function createTray() {
         }
     ]);
 
-    tray.setToolTip('Quick Note Taker');
     tray.setContextMenu(trayMenu);
 
-    tray.on('double-click', () => {
-        const win = BrowserWindow.getAllWindows()[0];
+    tray.on('click', () => {
+        if (!mainWindow) return;
 
-        if (!win) return;
-
-        if (win.isVisible()) {
-            win.hide();
+        if (mainWindow.isVisible()) {
+            mainWindow.hide();
         } else {
-            win.show();
-            win.focus();
+            mainWindow.show();
+            mainWindow.focus();
         }
     });
 }
 
 app.whenReady().then(() => {
     createWindow();
-    createMenu();
+    createAppMenu();
     createTray();
 
-    ipcMain.handle('save-note', async (event, text) => {
-        const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
-        fs.writeFileSync(filePath, text);
-        return { success: true };
-    });
-
-    ipcMain.handle('load-note', async () => {
-        const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
-
-        if (fs.existsSync(filePath)) {
-            return fs.readFileSync(filePath, 'utf-8');
-        }
-
-        return '';
-    });
-
-    ipcMain.handle('save-as', async (event, text) => {
-        const result = await dialog.showSaveDialog({
-            defaultPath: 'mynote.txt'
-        });
-
-        if (result.canceled) {
-            return { success: false };
-        }
-
-        fs.writeFileSync(result.filePath, text);
-        return { success: true, filePath: result.filePath };
-    });
-
-    ipcMain.handle('new-note', async () => {
-        const result = await dialog.showMessageBox({
-            type: 'warning',
-            buttons: ['Discard', 'Cancel'],
-            message: 'Unsaved changes. Continue?'
-        });
-
-        return { confirmed: result.response === 0 };
-    });
-
-    ipcMain.handle('open-file', async () => {
-        const result = await dialog.showOpenDialog({
-            properties: ['openFile'],
-            filters: [{ name: 'Text Files', extensions: ['txt'] }]
-        });
-
-        if (result.canceled) {
-            return { success: false };
-        }
-
-        const filePath = result.filePaths[0];
-        const content = fs.readFileSync(filePath, 'utf-8');
-
-        return { success: true, content, filePath };
-    });
-
-    ipcMain.handle('smart-save', async (event, text, filePath) => {
-        if (filePath) {
-            fs.writeFileSync(filePath, text);
-            return { success: true, filePath };
-        }
-
-        const result = await dialog.showSaveDialog({
-            defaultPath: 'mynote.txt'
-        });
-
-        if (result.canceled) {
-            return { success: false };
-        }
-
-        fs.writeFileSync(result.filePath, text);
-        return { success: true, filePath: result.filePath };
-    });
-
-    ipcMain.handle('get-notes', async () => {
-        return readNotes();
-    });
-
-    ipcMain.handle('delete-note', async (event, id) => {
-        const notes = readNotes();
-        const filtered = notes.filter(n => n.id !== id);
-
-        writeNotes(filtered);
-
-        return { success: true };
-    });
-
-    ipcMain.handle('save-note-json', async (event, note) => {
-        const notes = readNotes();
-        const index = notes.findIndex(n => n.id === note.id);
-        const now = new Date().toISOString();
-
-        if (index === -1) {
-            notes.push({
-                ...note,
-                createdAt: now,
-                updatedAt: now
-            });
+    app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+            createWindow();
         } else {
-            notes[index] = {
-                ...notes[index],
-                ...note,
-                updatedAt: now
-            };
+            mainWindow.show();
         }
-
-        writeNotes(notes);
-
-        return { success: true };
     });
 });
 
+app.on('before-quit', () => {
+    isQuiting = true;
+});
+
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
+    // Keep app running because tray icon should stay active.
+    // User can quit from File > Quit or tray > Quit.
+});
+
+// -------------------------------
+// IPC HANDLERS
+// -------------------------------
+
+ipcMain.handle('save-note', async (event, text) => {
+    const filePath = getQuickNotePath();
+    fs.writeFileSync(filePath, text, 'utf-8');
+
+    return {
+        success: true,
+        filePath: filePath
+    };
+});
+
+ipcMain.handle('load-note', async () => {
+    const filePath = getQuickNotePath();
+
+    if (fs.existsSync(filePath)) {
+        const text = fs.readFileSync(filePath, 'utf-8');
+
+        return {
+            success: true,
+            text: text,
+            filePath: filePath
+        };
     }
+
+    return {
+        success: false,
+        text: '',
+        filePath: filePath
+    };
+});
+
+ipcMain.handle('save-as', async (event, text) => {
+    const result = await dialog.showSaveDialog(mainWindow, {
+        defaultPath: 'mynote.txt',
+        filters: [
+            { name: 'Text Files', extensions: ['txt'] }
+        ]
+    });
+
+    if (result.canceled || !result.filePath) {
+        return {
+            success: false
+        };
+    }
+
+    fs.writeFileSync(result.filePath, text, 'utf-8');
+
+    return {
+        success: true,
+        filePath: result.filePath
+    };
+});
+
+ipcMain.handle('new-note', async (event, hasUnsavedChanges) => {
+    if (!hasUnsavedChanges) {
+        return {
+            proceed: true
+        };
+    }
+
+    const result = await dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        buttons: ['Cancel', 'Discard Changes'],
+        defaultId: 0,
+        cancelId: 0,
+        title: 'Unsaved Changes',
+        message: 'You have unsaved changes.',
+        detail: 'Do you want to discard them and start a new note?'
+    });
+
+    return {
+        proceed: result.response === 1
+    };
+});
+
+ipcMain.handle('open-file', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile'],
+        filters: [
+            { name: 'Text Files', extensions: ['txt'] }
+        ]
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+        return {
+            success: false
+        };
+    }
+
+    const filePath = result.filePaths[0];
+    const text = fs.readFileSync(filePath, 'utf-8');
+
+    return {
+        success: true,
+        text: text,
+        filePath: filePath,
+        fileName: path.basename(filePath, '.txt')
+    };
+});
+
+ipcMain.handle('smart-save', async (event, text, filePath) => {
+    const targetPath = filePath || getQuickNotePath();
+
+    fs.writeFileSync(targetPath, text, 'utf-8');
+
+    return {
+        success: true,
+        filePath: targetPath
+    };
+});
+
+ipcMain.handle('get-notes', async () => {
+    const notes = readNotes();
+
+    return {
+        success: true,
+        notes: notes
+    };
+});
+
+ipcMain.handle('save-json-note', async (event, note) => {
+    const notes = readNotes();
+
+    const now = new Date().toISOString();
+
+    const noteToSave = {
+        id: note.id || Date.now().toString(),
+        title: note.title || 'Untitled Note',
+        content: note.content || '',
+        createdAt: note.createdAt || now,
+        updatedAt: now
+    };
+
+    const existingIndex = notes.findIndex((item) => item.id === noteToSave.id);
+
+    if (existingIndex >= 0) {
+        notes[existingIndex] = noteToSave;
+    } else {
+        notes.unshift(noteToSave);
+    }
+
+    writeNotes(notes);
+
+    return {
+        success: true,
+        note: noteToSave,
+        notes: notes
+    };
+});
+
+ipcMain.handle('delete-json-note', async (event, noteId) => {
+    const notes = readNotes();
+    const updatedNotes = notes.filter((note) => note.id !== noteId);
+
+    writeNotes(updatedNotes);
+
+    return {
+        success: true,
+        notes: updatedNotes
+    };
+});
+
+ipcMain.handle('delete-all-notes', async () => {
+    writeNotes([]);
+
+    const quickNotePath = getQuickNotePath();
+
+    if (fs.existsSync(quickNotePath)) {
+        fs.unlinkSync(quickNotePath);
+    }
+
+    return {
+        success: true
+    };
 });

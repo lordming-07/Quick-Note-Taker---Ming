@@ -1,14 +1,14 @@
 {
   "name": "quick-note-taker",
   "version": "1.0.0",
+  "description": "Quick Note Taker Electron App",
   "main": "main.js",
   "scripts": {
-    "start": "electron . --ozone-platform=x11 --disable-gpu"
+    "start": "electron --ozone-platform=x11 --disable-gpu ."
   },
   "devDependencies": {
-    "electron": "^40.8.5"
+    "electron": "^40.8.2"
   },
-  "description": "",
   "keywords": [],
   "author": "",
   "license": "ISC",

@@ -1,0 +1,174 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    color: #222;
+}
+
+#app {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar */
+#sidebar {
+    width: 280px;
+    background: #243447;
+    color: white;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+#sidebar h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+#new-note {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: none;
+    background: #2ecc71;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+#new-note:hover {
+    background: #27ae60;
+}
+
+#notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.note-item {
+    background: #34495e;
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    border-left: 4px solid transparent;
+}
+
+.note-item:hover {
+    background: #3d566e;
+}
+
+.note-item.active {
+    border-left: 4px solid #2ecc71;
+    background: #405d78;
+}
+
+.note-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    word-break: break-word;
+}
+
+.note-date {
+    font-size: 12px;
+    color: #cfd8dc;
+    margin-bottom: 8px;
+}
+
+.delete-note {
+    background: #e74c3c;
+    border: none;
+    color: white;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.delete-note:hover {
+    background: #c0392b;
+}
+
+.danger {
+    width: 100%;
+    margin-top: 20px;
+    padding: 10px;
+    border: none;
+    background: #e74c3c;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.danger:hover {
+    background: #c0392b;
+}
+
+/* Editor */
+#editor {
+    flex: 1;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+}
+
+#editor h1 {
+    margin-top: 0;
+}
+
+#note-title {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    font-size: 20px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+#note {
+    flex: 1;
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    resize: none;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    line-height: 1.5;
+}
+
+#buttons {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+#buttons button {
+    padding: 12px 18px;
+    border: none;
+    background: #2c7a7b;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+#buttons button:hover {
+    background: #225e5f;
+}
+
+#save_status {
+    margin-top: 15px;
+    color: #2c7a7b;
+    font-weight: bold;
+}
+
+#file_path {
+    color: #555;
+    font-size: 13px;
+    word-break: break-all;
+}

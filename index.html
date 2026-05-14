@@ -1,44 +1,37 @@
 <!DOCTYPE html>
+<html lang="en">
 <head>
-
-     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quick Note Taker</title>
-    <style>
-        body {
-            font-family: system-ui;
-            padding: 20px;
-            background: #f4f4f4;
-        }
-        textarea {
-            width: 95%;
-            height: 60vh;
-            font-size: 18px;
-            padding: 15px;
-        }
-        button {
-            padding: 12px 30px;
-            font-size: 18px;
-            background: #316357;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <title>📝Quick Note Taker</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-    <h1>📝My Notes in class</h1>
-    <textarea id="note" placeholder="Start typing your note..."></textarea>
-    <br><br>        
-    <button id="save">💾Save Note 🎬</button>
-    <button id="save-as">💾Save As</button>
-    <button id="new-note">🆕New Note</button>
-    <button id="open-file">📂Open Note</button>
-    <p id="save_status"></p>
+    <div id="app">
+        <aside id="sidebar">
+            <h2>📝 Notes</h2>
+            <button id="new-note">➕ New Note</button>
+            <div id="notes-list"></div>
+            <button id="delete-all" class="danger">🗑 Delete All</button>
+        </aside>
+
+        <main id="editor">
+            <h1>📝 Quick Note Taker</h1>
+
+            <input id="note-title" type="text" placeholder="Note title">
+
+            <textarea id="note" placeholder="Write your note here..."></textarea>
+
+            <div id="buttons">
+                <button id="save">💾 Save Note</button>
+                <button id="save-as">📁 Save As</button>
+                <button id="open-file">📂 Open File</button>
+            </div>
+
+            <p id="save_status">Ready</p>
+            <p id="file_path"></p>
+        </main>
+    </div>
 
     <script src="renderer.js"></script>
 </body>
-
 </html>
